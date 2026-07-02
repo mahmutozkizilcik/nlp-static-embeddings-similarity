@@ -1,0 +1,382 @@
+AIN442 Practicum in Natural Language Processing
+BBM497 Introduction to Natural Language Processing Lab.
+Spring 2026
+Instructor: Prof. Dr. İlyas Çiçekli
+TA’s: Sümeyye Meryem Taşyürek*, İsmail Furkan Atasoy
+Programming Assignment 4 – Static Word Embeddings for
+Similarity Analysis and Text Classification
+Due date: Sunday, 10-05-2026, 11:59 PM.
+1
+Introduction
+In this assignment, you will work with static word embeddings and explore how they can be
+used to represent words, sentences, and documents in vector space. Word embeddings provide
+dense numerical representations of words such that semantically related words tend to appear
+closer to each other. These representations have become fundamental tools in Natural Language
+Processing, as they enable machines to capture lexical similarity and support downstream tasks
+such as similarity analysis, text classification, and information retrieval.
+You are required to use pre-trained word embeddings to implement methods for word- and
+sentence-level similarity analysis as well as text classification. In the first part of the
+assignment, you will examine semantic similarity by retrieving similar words, constructing sen-
+tence vectors, comparing sentences in vector space, and analyzing how individual embedding
+dimensions contribute to similarity. In the second part, you will use static embedding-based
+text representations to build and evaluate a classifier for a text classification task.
+The goal of this assignment is to help you understand:
+• how static word embeddings represent semantic relationships between words,
+• how sentence and document representations can be constructed from word vectors,
+• how vector-based similarity can be used to compare words and sentences,
+• how static embeddings can support downstream tasks such as text classification,
+• and what the strengths and limitations of static embedding-based representations are.
+2
+Part I: Similarity Analysis with Static Word Embeddings
+The objective of this part is to explore selected applications of static word embeddings
+and to develop hands-on experience through their implementation. To this end, the Gensim
+library will be employed to work with pre-trained word embeddings. The pre-trained word2vec
+google-news-300 model will be utilized. You can load the model with the following code:
+import gensim.downloader
+model = gensim.downloader.load("word2vec-google-news-300")
+You will use this model to analyze semantic similarity at both the word and sentence levels.
+In addition to retrieving similar words and sentences, you will also examine how individual
+embedding dimensions contribute to similarity between two words. All vector operations in this
+part will be performed using NumPy. Unless otherwise stated, tokenization should be based
+on whitespace.
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+2.1
+Replace with Similar Words
+In this section, given a sentence and a list of indices, the words at the specified indices will be
+replaced with their most similar alternatives according to the embedding model.
+For this purpose, the function replace_with_similar(sentence, indices) should first be
+defined. The sentence parameter will contain a single string, while the indices parameter will
+be a list of indices. The indices provided to the function will always be valid, and it is also
+guaranteed that each word corresponding to the given indices exists in the vocabulary of the
+model.
+The sentence will be tokenized based on whitespace. For each token specified by the indices, the
+top 5 most similar words along with their similarity scores will be retrieved from the model. For
+this purpose, the most_similar() method of the model object should be used. These words
+and their scores will be stored in a dictionary, where each original token maps to a list of tuples.
+Each tuple contains a similar word and its corresponding similarity score.
+Assume that a sentence containing 10 words and a list of two indices are given as parameters,
+the structure of the resulting dictionary should be as follows:
+{
+word_1: [(similar_word_1, score), ..., (similar_word_5, score)],
+word_2: [(similar_word_1, score), ..., (similar_word_5, score)]
+}
+word_1 and word_2 are the words corresponding to the given indices.
+Once this dictionary is completed, the original word at each given index will be replaced with the
+most similar word having the highest similarity score among the retrieved candidates,
+thereby creating a new sentence.
+The replace_with_similar() function should return both the dictionary and the new sen-
+tence as follows:
+(new_sentence, similar_words_dict)
+Some usage examples are provided below:
+sentence = "I love AIN442 and BBM497 courses"
+indices = [1, 5]
+new_sentence, most_similar_dict = replace_with_similar(sentence, indices)
+print(most_similar_dict.keys(), end="\n\n")
+print(most_similar_dict["love"], end="\n\n")
+print(most_similar_dict["courses"], end="\n\n")
+print(new_sentence)
+Output:
+dict_keys([’love’, ’courses’])
+[(’loved’, 0.6907791495323181), (’adore’, 0.6816873550415039),
+2
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+(’loves’, 0.661863386631012), (’passion’, 0.6100708842277527),
+(’hate’, 0.600395679473877)]
+[(’Courses’, 0.7718060612678528), (’course’, 0.6795483231544495),
+(’coursework’, 0.6573367714881897), (’classes’, 0.6370522379875183),
+(’noncredit_courses’, 0.6368249654769897)]
+I loved AIN442 and BBM497 Courses
+Note: The replacement word must always be the top-ranked similar word. This is required for
+consistent and automatic evaluation.
+2.2
+Find Similar Sentences
+The purpose of this section is to identify and list the sentences that are most similar to a given
+query using cosine similarity of embedding-based sentence representations. You will have two
+different function definitions. These are sentence_vector(sentence) and
+most_similar_sentences(file_path, query).
+2.2.1
+sentence_vector(sentence)
+The sentence_vector() function will take only a sentence string and will store the embedding
+vectors of each word in the string in a dictionary. This dictionary should look like the following:
+{
+word_1: [vector with 300 dimensions],
+word_2: [vector with 300 dimensions],
+...
+}
+If the word is not found in the model, then a zero vector of the correct dimensionality should
+be added to the dictionary.
+In order to obtain the sentence vector, the vectors of each word in the dictionary will be summed
+up and divided by the number of words. In other words, the mean of each word vectors will be
+taken, resulting in a single 300-dimensional sentence vector representation.
+The sentence_vector() function should return both the dictionary of each word’s vectors
+and the calculated sentence vector as follows:
+(vector_dict, sentence_vec)
+Here are some examples of how to use the sentence_vector() function:
+vector_dict, sentence_vec = sentence_vector("This is a test sentence")
+print(vector_dict.keys(), end="\n\n")
+print(vector_dict["This"][:5], end="\n\n")
+print(vector_dict["a"][:5], end="\n\n")
+print(len(vector_dict["test"]))
+3
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+Output:
+dict_keys([’This’, ’is’, ’a’, ’test’, ’sentence’])
+[-0.2890625
+0.19921875
+0.16015625
+0.02526855 -0.23632812]
+[0. 0. 0. 0. 0.]
+300
+2.2.2
+most_similar_sentences(file_path, query)
+The most_similar_sentences() function should take a file path and a query sentence as pa-
+rameters. The query sentence will be a string, and the file path will point to a text file containing
+different sentences, where each line should be treated as a separate sentence.
+First, read the file and treat each line as a separate sentence. Then, using the sentence_vector()
+function defined in the previous subsection, generate sentence vectors for both the query and all
+sentences in the file. Each sentence should be paired with the query, and the cosine similarity be-
+tween their sentence vectors should be calculated. Use numpy.dot() and numpy.linalg.norm()
+for your calculations.
+For each sentence, create a tuple that contains the sentence itself and its cosine similarity
+with the query. Then, collect all these tuples into a list. This list should contain tuples in the
+following format:
+[
+(sentence1, cosine_similarity),
+(sentence2, cosine_similarity),
+...
+]
+Finally, sort this list in descending order of cosine similarity, and have the function return the
+sorted list.
+Here are some examples of how to use the most_similar_sentences() function:
+file_path = "sentences.txt"
+query = "Which courses have you taken at Hacettepe University ?"
+results = most_similar_sentences(file_path, query)
+for sentence, score in results[:3]:
+print(f"{score:.5f} -> {sentence}")
+Output:
+0.82187 -> I am very happy to have taken the AIN442 and BBM497 courses of
+Hacettepe University .
+0.64230 -> Students have the chance to gain practice with the homework
+given in lab classes of universities .
+0.58392 -> I forgot my backpack on campus and when I got there it was in
+the same place .
+4
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+2.3
+Analyze Dimension Contributions
+In this section, you will analyze which embedding dimensions contribute most strongly to the
+similarity between two words. Rather than treating similarity as a single cosine similarity score,
+you will examine how individual dimensions of the embedding vectors reinforce or weaken the
+relationship between word pairs.
+For this purpose, the function analyze_dimension_contributions(word1, word2, top_k=10)
+should be defined. This function will take two words and an integer top_k as parameters. You
+may assume that both words exist in the vocabulary of the model.
+Let the embedding vectors of word1 and word2 be denoted by u and v. For each dimension i,
+compute a contribution score as:
+ui · vi
+where ui and vi are the values of the two word vectors at dimension i.
+After computing these contribution scores for all dimensions, sort them in descending order
+according to their absolute values, and return the top k dimensions. The return value should
+be a list of tuples in the following format:
+[
+(dimension_index, contribution_value, word1_value, word2_value),
+...
+]
+Here, dimension_index is the index of the embedding dimension, contribution_value is the
+product ui ·vi, and word1_value and word2_value are the corresponding values of the two word
+vectors in that dimension.
+For example, a function call may look as follows:
+results = analyze_dimension_contributions("good", "great", top_k=5)
+for item in results:
+print(item)
+In addition, you are provided with a file named word_pairs.txt, where each line contains a
+pair of words separated by whitespace.
+word1 word2
+You are expected to apply your function to the given word pairs and examine how dimension-
+level contribution patterns differ across semantically similar, contrastive, and unrelated pairs.
+This section is intended to help you interpret similarity not only at the vector level, but also at
+the level of individual embedding dimensions, allowing you to better understand how different
+parts of an embedding jointly contribute to semantic relatedness.
+5
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+3
+Part II: Text Classification with Static Word Embeddings
+In this part of the assignment, you will use static word embeddings to represent texts as
+fixed-size vectors and apply these representations to a text classification task. This part ex-
+amines how embedding-based representations can be used in a downstream supervised learning
+setting.
+You will work on a binary text classification task. Each text instance will be converted into
+a single vector representation by aggregating the embedding vectors of the words it contains.
+These document vectors will then be used to train and evaluate a classifier.
+The goal of this part is to help you understand how static word embeddings can support text
+classification, how word-level representations can be aggregated into document-level features,
+and what the strengths and limitations of such representations are in supervised learning tasks.
+3.1
+Dataset
+In this part, you will use a subset of IMDB movie review dataset for binary sentiment classifica-
+tion. Each review is labeled as either positive or negative.
+The dataset is provided in CSV format. The file contains at least the following two columns:
+review,sentiment
+where review contains the text of the movie review and label contains the corresponding class
+label.
+You are expected to split the dataset into training and test sets. You may use libraries such as
+pandas and scikit-learn for data loading and splitting.
+3.2
+Construct Document Vectors
+The purpose of this section is to represent each review using a single fixed-size vector derived
+from static word embeddings.
+For this purpose, the function document_vector(text) should be defined. The text param-
+eter will contain a single review string. The review should be tokenized based on whitespace.
+For each token, retrieve its embedding vector from the pre-trained word2vec-google-news-300
+model.
+If a word is not found in the model, it should be ignored in the document representation.
+If none of the words in a review exist in the model vocabulary, the function should return a zero
+vector of the correct dimensionality.
+In order to obtain the document vector, compute the mean of all valid word vectors found
+in the review.
+The document_vector() function should return a single vector representation of the input
+review.
+For example, a function call may look as follows:
+vec = document_vector("This movie was great and very enjoyable")
+print(len(vec))
+6
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+Output:
+300
+3.3
+Prepare Classification Data
+After obtaining document vectors, you will prepare the feature matrix and label vector for the
+classification task.
+For this purpose, the function prepare_classification_data(file_path) should be defined.
+This function will read the dataset file, compute the document vector for each review using the
+document_vector() function, and return:
+X, y
+where X is a NumPy array containing the document vectors and y is a NumPy array containing
+the corresponding labels.
+Each row of X should correspond to one review, and each review vector should have the same
+dimensionality as the embedding model.
+3.4
+Train a Classifier
+The purpose of this section is to perform binary classification using the document vectors con-
+structed from static word embeddings.
+For this purpose, the function train_classifier should be defined. This function will take the
+training feature matrix and training labels as input, train a classifier, and return the trained
+model.
+In this assignment, you are required to implement a simple neural network classifier using
+a deep learning framework such as PyTorch. The model should consist of:
+• An input layer matching the embedding dimensionality,
+• At least one hidden layer,
+• An output layer for binary classification.
+You may use common activation functions such as ReLU or Tanh. You are free to choose rea-
+sonable hyperparameters such as the hidden layer size, learning rate, optimizer, batch size, and
+number of training epochs. Your neural network should be lightweight and trainable within a
+reasonable time on a standard CPU.
+You are encouraged to experiment with these hyperparameters to obtain better classification
+performance. However, overly complex architectures are not required and may lead to overfitting
+or long training times.
+Train-Test Split:
+You should split your dataset into training and test sets before training
+the classifier. You should use 80% training and 20% test data.
+You are encouraged to use train_test_split from sklearn.model_selection with a fixed
+random seed for reproducibility.
+A function call should look as follows:
+model = train_classifier(X_train, y_train, hidden_dim, learning_rate, epochs, batch_size)
+7
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+3.5
+Evaluate the Classifier
+After training the classifier, you will evaluate its performance on the test set.
+For this purpose, the function evaluate_classifier should be defined. This function should
+use the trained classifier to predict the labels of the test instances and compute the following
+evaluation metrics:
+• Accuracy
+• Precision
+• Recall
+• F1-score
+The function should return these metrics in a dictionary in the following format:
+{
+"accuracy": ...,
+"precision": ...,
+"recall": ...,
+"f1": ...
+}
+A function call should look as follows:
+results = evaluate_classifier(clf, X_test, y_test)
+print(results)
+As a reference, accuracy and F1-score around 0.72 or higher indicate a good implementation,
+while scores close to 0.50 may indicate issues in document vector construction, label mapping,
+model training, or evaluation. Training will be performed for a small number of epochs
+during grading. Therefore, your model should be able to learn effectively within a few epochs.
+The autograder will evaluate both the correctness of your functions and the performance of
+your trained classifier on the provided subset of IMDB dataset.
+4
+Required Functions for Evaluation
+Your submission will be automatically evaluated using the following required functions. There-
+fore, you must implement these functions with the exact names and input/output formats spec-
+ified in the assignment.
+• replace_with_similar(sentence, indices)
+• sentence_vector(sentence)
+• most_similar_sentences(file_path, query)
+• analyze_dimension_contributions(word1, word2, top_k=10)
+• document_vector(text)
+• prepare_classification_data(file_path)
+8
+
+BBM497-AIN442 Programming Assignment 4
+Spring 2026
+• train_classifier(X_train, y_train, hidden_dim, learning_rate, epochs, batch_size)
+• evaluate_classifier(clf, X_test, y_test)
+You may define additional helper functions or classes if needed. However, these required func-
+tions must be present in your submitted Python file and must follow the specified return formats.
+5
+Submission
+You must submit the following files:
+• <student_id>_part1.py
+Implementation of the part 1.
+• <student_id>_part2.py
+Implementation of the part 2.
+You should prepare a ZIP file named <student id>.zip containing all your codes. Submit it to
+HADİ, where you will be assigned a submission.
+5.1
+Grading
+This assignment will be graded automatically and is worth 100 points in total:
+• Part I: Similarity Analysis – 50 points. The required functions will be tested for
+correct use of embeddings, sentence vector construction, cosine similarity ranking, and
+dimension contribution analysis.
+• Part II: Text Classification – 50 points. The required functions will be tested for
+document vector construction, data preparation, neural network training, metric compu-
+tation, and reasonable classification performance.
+You must use the exact function names, input/output formats, and return types specified in the
+assignment. For Part II, scores around 0.72 or higher indicate a good implementation, while
+scores close to 0.50 indicate implementation errors and will be graded accordingly.
+5.2
+Late Submission Policy
+• You must submit your programming assignment before its due date.
+• You may submit your assignment up to three days late, but with a penalty:
+– 1 day late: 10% penalty
+– 2 days late: 20% penalty
+– 3 days late: 30% penalty
+DO YOUR PROGRAMMING ASSIGNMENTS YOURSELF!
+• Do not share your programming assignments with your friends.
+• Do not complete your entire assignment using AI tools, and clearly comment on any part
+where you have received support from AI tools.
+• Your code will be checked using a similarity check, and any submission with a high degree
+of similarity will be considered cheating. Using AI tools significantly increases the simi-
+larity between your solutions. Therefore, the responsibility for maintaining originality lies
+entirely with you.
+9
+

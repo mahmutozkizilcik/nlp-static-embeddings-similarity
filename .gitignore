@@ -1,0 +1,18 @@
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+venv/
+env/
+
+# IDE / OS generated files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Submission archives and folders
+submit/
+*.zip
+*.tar.gz
